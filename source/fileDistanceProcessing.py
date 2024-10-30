@@ -57,3 +57,25 @@ def five_two_adic_distance(s1, s2):
             else:
                 distance += 1*1/25
     return distance
+
+def read_dataset_virus(file_path_sars1="../data/sars1.fasta", file_path_mers="../data/mers.fasta",  file_path_sars2="./data/sars2.fasta"):
+    """
+        Vraca niz 
+    """
+    X_sars1 = read_data("../data/sars1.fasta")
+    y_sars1 = ['sars1' for i in range(len(X_sars1))]
+    X_mers = read_data("../data/mers.fasta")
+    #X_sars2=fdp.read_data("./data/sars2.fasta")
+    X=X_sars1
+    y=y_sars1
+    for x in X_mers:
+        X.append(x)
+        y.append('mers')
+    
+#     for x in X_sars2:
+#         X.append(x)
+#         y.append('sars2')
+
+    
+    return X,y
+
