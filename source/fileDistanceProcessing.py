@@ -62,10 +62,10 @@ def read_dataset_virus(file_path_sars1="../data/sars1.fasta", file_path_mers="..
     """
         Vraca niz 
     """
-    X_sars1 = read_data("../data/sars1.fasta")
+    X_sars1 = read_data(file_path_sars1)
     y_sars1 = ['sars1' for i in range(len(X_sars1))]
-    X_mers = read_data("../data/mers.fasta")
-    #X_sars2=fdp.read_data("./data/sars2.fasta")
+    X_mers = read_data(file_path_mers)
+    #X_sars2=read_data(file_path_sars2)
     X=X_sars1
     y=y_sars1
     for x in X_mers:
