@@ -1,7 +1,8 @@
 from Bio import SeqIO
+from typing import List
 import numpy as np
 
-def five_adic_coding(s):
+def five_adic_coding(s: str) -> List[int]:
     seq = []
     num = ''
     i = 0
@@ -20,20 +21,28 @@ def five_adic_coding(s):
             seq.append(int(num))
             num = ''
 
-        if len(seq) == 3: # should be 40
+        if len(seq) == 3: # should be 39
             break
     return seq
 
-def read_data(filePath):
+# vraca kodiranu sekvencu i klase proteina
+def read_data(filePath: str) -> (List[int], List[str]):
     with open(filePath) as file:
         fasta_sequences_sars1 = SeqIO.parse(file,'fasta')
-        data = []
+        coded_sequences = []
+        protein_classes = []
         for fasta in fasta_sequences_sars1:
-            seq = five_adic_coding(fasta.seq)
-            data.append(seq)
-    return data
+            coded_seq = five_adic_coding(fasta.seq)
+            coded_sequences.append(coded_seq)
 
-def simple_difference_distance(s1, s2):
+            protein_class = fasta.description
+            # formatiranje proteinske klase da se izvuku samo kljucne informacije o klasi ignorisuci velika i mala slova
+            protein_class = ''.join(protein_class.split('|')[1].split('[')[0].strip().split()).lower()
+            
+            protein_classes.append(protein_class)
+    return coded_sequences, protein_classes
+
+def simple_difference_distance(s1: List[int], s2: List[int]) -> int:
     i = len(s1)
     j = 0
     distance = 0
@@ -42,7 +51,7 @@ def simple_difference_distance(s1, s2):
     distance = sum([abs(x) for x in diff])
     return distance
 
-def five_two_adic_distance(s1, s2):
+def five_two_adic_distance(s1: List[int], s2: List[int]) -> int:
     distance = 0
     for i in range(len(s1)):
         if int(s1[i]/100) != int(s2[i]/100):
@@ -58,24 +67,29 @@ def five_two_adic_distance(s1, s2):
                 distance += 1*1/25
     return distance
 
-def read_dataset_virus(file_path_sars1="../data/sars1.fasta", file_path_mers="../data/mers.fasta",  file_path_sars2="./data/sars2.fasta"):
+def read_dataset_virus(file_path_sars1="../data/sars1.fasta", file_path_mers="../data/mers.fasta",  file_path_sars2="../data/sars2.fasta"):
     """
-        Vraca niz 
+        Vraca niz, vraca y labele (tip virusa) i y_protein labele (tip proteina)
     """
-    X_sars1 = read_data(file_path_sars1)
+    X_sars1, y_protein_sars1 = read_data(file_path_sars1)
     y_sars1 = ['sars1' for i in range(len(X_sars1))]
-    X_mers = read_data(file_path_mers)
-    #X_sars2=read_data(file_path_sars2)
+    X_mers, y_protein_mers = read_data(file_path_mers)
+    X_sars2, y_protein_sars2 = read_data(file_path_sars2)
+    
     X=X_sars1
+    y_protein = y_protein_sars1
     y=y_sars1
-    for x in X_mers:
-        X.append(x)
+    
+    for i in range(len(X_mers)):
+        X.append(X_mers[i])
+        y_protein.append(y_protein_mers[i])
         y.append('mers')
     
-#     for x in X_sars2:
-#         X.append(x)
-#         y.append('sars2')
+    for i in range(len(X_sars2)):
+        X.append(X_sars2[i])
+        y_protein.append(y_protein_sars2[i])
+        y.append('sars2')
 
     
-    return X,y
+    return X,y,y_protein
 
