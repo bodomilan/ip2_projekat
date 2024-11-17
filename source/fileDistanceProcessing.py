@@ -21,7 +21,7 @@ def five_adic_coding(s: str) -> List[int]:
             seq.append(int(num))
             num = ''
 
-        if len(seq) == 3: # should be 39
+        if len(seq) == 39: # should be 39
             break
     return seq
 
