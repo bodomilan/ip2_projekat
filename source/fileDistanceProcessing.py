@@ -1,6 +1,20 @@
 from Bio import SeqIO
 from typing import List
 import numpy as np
+import pickle
+
+def compute_distance_matrix(X):
+    distances = np.zeros((len(X), len(X)))
+    for i in range(len(X)):
+        for j in range(i+1, len(X)):
+            distance = fdp.five_two_adic_distance(X[i], X[j])
+            distances[i][j] = distance
+            distances[j][i] = distance
+
+    # save computed matrix to file
+    with open("../data/distance_matrix", "wb") as outfile:
+     	# "wb" argument opens the file in binary mode
+    	pickle.dump(distances, outfile)
 
 def five_adic_coding(s: str) -> List[int]:
     seq = []
@@ -21,7 +35,7 @@ def five_adic_coding(s: str) -> List[int]:
             seq.append(int(num))
             num = ''
 
-        if len(seq) == 39: # should be 39
+        if len(seq) == 78: # should be 78
             break
     return seq
 
