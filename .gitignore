@@ -1,4 +1,8 @@
 .ipynb_checkpoints/
 source/.Rhistory
 source/__pycache__/
-
+*.out
+data/backup
+data/csv
+data/sequences
+source/do_not_push

@@ -2,21 +2,108 @@ from Bio import SeqIO
 from typing import List
 import numpy as np
 import pickle
+import pandas as pd
+import os
+from zipfile import ZipFile
+from py7zr import SevenZipFile
 
-def compute_distance_matrix(X):
-    distances = np.zeros((len(X), len(X)))
-    for i in range(len(X)):
-        for j in range(i+1, len(X)):
-            distance = fdp.five_two_adic_distance(X[i], X[j])
-            distances[i][j] = distance
-            distances[j][i] = distance
+# formira fajl koji sadrzi u svakom redu po jednu sekvencu, ako se cita iz CSV fajla vrsi se i preprocesiranje
+# trebalo bi da radi i kada se izvrsi ravnanje
+def write_sequences_to_file(source_path : str="../data/csv/sars2_mers_sars1.txt", destination_path : str="../data/sequences", is_csv : bool=True):
+    sequences = []
+    if is_csv:
+        X = pd.read_csv(source_path, skipinitialspace = True )
+        X.columns = X.columns.str.strip()
+    
+        sequences = X["KOD_NUC"].tolist()
+            
+        with open(destination_path, "w") as outfile:
+            for seq in sequences:
+                outfile.write(seq.strip()+'\n')
+    else:
+        with open(source_path, "r") as infile:
+            for line in infile:
+                sequences.append(line)
 
-    # save computed matrix to file
-    with open("../data/distance_matrix", "wb") as outfile:
-     	# "wb" argument opens the file in binary mode
-    	pickle.dump(distances, outfile)
+        with open(destination_path, "w") as outfile:
+            for seq in sequences:
+                outfile.write(seq)
+            
 
-def five_adic_coding(s: str) -> List[int]:
+# kao argument dobija tip kompresovanog fajla, fajl sa distancama u obliku trougaone liste listi i kompresuje ga na destination_path
+def serialize_and_compress_distance_matrix(source_path: str, destination_path: str, compression_file = ZipFile):
+    
+    # matrica ce biti u obliku trougla, jer je matrica distanci simetricna pa nema potrebe cuvati je kompletnu
+    distances_triangle_list = []
+    row_distances = []
+    with open(source_path, "r") as infile:
+        for line in infile:
+            distances = line.split(", ")[:-1]
+            for distance in distances:
+                row_distances.append(float(distance))
+            distances_triangle_list.append(row_distances)
+            row_distances = []
+
+    extension = ".zip"
+    if(compression_file == SevenZipFile):
+        extension = ".7z"
+    index = destination_path.find(extension)
+    if index == -1:
+        index = len(destination_path)
+    destination_path = destination_path[:index]
+    with open(destination_path, "wb") as outfile:
+        pickle.dump(distances_triangle_list, outfile)
+
+    with compression_file(destination_path+extension,'w') as compressor:
+        compressor.write(destination_path)
+
+    # obrisi ne kompresovan fajl
+    os.remove(destination_path)
+
+
+# vraca trougaonu listu distanci
+def deserialize_and_decompress_distance_matrix(source_path: str) -> List[int]:
+
+    extract_path = ""
+    extension_beginning = source_path.rfind(".")
+    if(extension_beginning == -1):
+        raise Exception("file must contain extension!")
+        
+    extension = source_path[extension_beginning:]
+    if (extension != ".7z" and extension != ".zip"):
+        raise Exception("Extension must be .7z or .zip!")
+
+    compression_file = SevenZipFile
+    if(extension == ".7z"):
+        compression_file = SevenZipFile
+        extract_path_index = source_path.rfind("/") + 1
+        extract_path = source_path[:extract_path_index]
+
+    elif (extension == ".zip"):
+        compression_file = ZipFile
+        extract_path_index = source_path.rfind("../")
+        if extract_path_index != -1:
+            extract_path = source_path[:(extract_path_index+2)]
+    
+    with compression_file(source_path,'r') as compressor:
+        compressor.extractall(extract_path)
+
+    index = source_path.find(extension)
+    decompressed_path = source_path[:index]
+    with open(decompressed_path, "rb") as infile:
+     	distances = pickle.load(infile)
+
+    os.remove(decompressed_path)
+
+    return distances
+
+
+
+
+
+def five_adic_coding(s: str, cut_len=float('inf')) -> List[int]:
+    s.strip() #remove whites from end
+    
     seq = []
     num = ''
     i = 0
@@ -35,10 +122,46 @@ def five_adic_coding(s: str) -> List[int]:
             seq.append(int(num))
             num = ''
 
-        if len(seq) == 78: # should be 78
+        if len(seq) == cut_len: #cut_len should be 78
             break
     return seq
 
+def simple_difference_distance(s1: List[int], s2: List[int]) -> int:
+    i = len(s1)
+    j = 0
+    distance = 0
+
+    diff = np.array(s1) - np.array(s2)
+    distance = sum([abs(x) for x in diff])
+    return distance
+
+def five_two_adic_distance(s1: List[int], s2: List[int]) -> int:
+    distance = 0
+    duzina1 = len(s1)
+    duzina2 = len(s2)
+
+    min_duzina = min(duzina1, duzina2)
+    for i in range(min_duzina):
+        if int(s1[i]/100) != int(s2[i]/100):
+            distance += 1
+            
+        elif int(s1[i]/10) != int(s2[i]/10):
+            distance += 1/5
+            
+        elif s1[i] % 10 != s2[i] % 10:
+            if abs(s1[i] % 10 - s2[i] % 10) == 2:
+                distance += 1/2*1/25
+            else:
+                distance += 1*1/25
+                
+    return distance + abs(duzina1 - duzina2) / 3.0
+
+
+
+
+
+
+# ON NON CSV data
 # vraca kodiranu sekvencu i klase proteina
 def read_data(filePath: str) -> (List[int], List[str]):
     with open(filePath) as file:
@@ -55,31 +178,6 @@ def read_data(filePath: str) -> (List[int], List[str]):
             
             protein_classes.append(protein_class)
     return coded_sequences, protein_classes
-
-def simple_difference_distance(s1: List[int], s2: List[int]) -> int:
-    i = len(s1)
-    j = 0
-    distance = 0
-
-    diff = np.array(s1) - np.array(s2)
-    distance = sum([abs(x) for x in diff])
-    return distance
-
-def five_two_adic_distance(s1: List[int], s2: List[int]) -> int:
-    distance = 0
-    for i in range(len(s1)):
-        if int(s1[i]/100) != int(s2[i]/100):
-            distance += 1
-            
-        elif int(s1[i]/10) != int(s2[i]/10):
-            distance += 1/5
-            
-        elif s1[i] % 10 != s2[i] % 10:
-            if abs(s1[i] % 10 - s2[i] % 10) == 2:
-                distance += 1/2*1/25
-            else:
-                distance += 1*1/25
-    return distance
 
 def read_dataset_virus(file_path_sars1="../data/sars1.fasta", file_path_mers="../data/mers.fasta",  file_path_sars2="../data/sars2.fasta"):
     """
