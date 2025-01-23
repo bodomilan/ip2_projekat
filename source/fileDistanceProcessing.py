@@ -205,3 +205,32 @@ def read_dataset_virus(file_path_sars1="../data/sars1.fasta", file_path_mers="..
     
     return X,y,y_protein
 
+def train_test_virus():
+    y_train=pd.read_csv("../data/virus/y_train.csv",index_col=0)
+    y_test=pd.read_csv("../data/virus/y_test.csv",index_col=0)
+    X_train,X_test=[],[]
+    with open("../data/virus/X_train.pkl", "rb") as file:
+        X_train=pickle.load(file)
+    with open("../data/virus/X_test.pkl", "rb") as file:
+        X_test=pickle.load(file)
+    return X_train, X_test, y_train, y_test
+
+def train_test_protein():
+    y_train=pd.read_csv("../data/protein/y_train.csv",index_col=0)
+    y_test=pd.read_csv("../data/protein/y_test.csv",index_col=0)
+    X_train,X_test=[],[]
+    with open("../data/protein/X_train.pkl", "rb") as file:
+        X_train=pickle.load(file)
+    with open("../data/protein/X_test.pkl", "rb") as file:
+        X_test=pickle.load(file)
+    return X_train, X_test, y_train, y_test
+
+def train_test_sars2():
+    y_train=pd.read_csv("../data/sars2_who/y_train.csv",index_col=0)
+    y_test=pd.read_csv("../data/sars2_who/y_test.csv",index_col=0)
+    X_train,X_test=[],[]
+    with open("../data/sars2_who/X_train.pkl", "rb") as file:
+        X_train=pickle.load(file)
+    with open("../data/sars2_who/X_test.pkl", "rb") as file:
+        X_test=pickle.load(file)
+    return X_train, X_test, y_train, y_test
